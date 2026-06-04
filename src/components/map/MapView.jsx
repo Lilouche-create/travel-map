@@ -26,17 +26,20 @@ export default function MapView({
   highlightRegionId,
   mapContainerRef,
 }) {
-  const wrapRef         = useRef(null)
-  const containerRef    = useRef(null)
-  const mapRef          = useRef(null)
-  const markersRef      = useRef({})   // city markers
-  const labelsRef       = useRef({})   // duration badges
-  const lastDataRef     = useRef(EMPTY_FC)
+  const wrapRef              = useRef(null)
+  const containerRef         = useRef(null)
+  const mapRef               = useRef(null)
+  const markersRef           = useRef({})   // city markers
+  const labelsRef            = useRef({})   // duration badges
+  const lastDataRef          = useRef(EMPTY_FC)
+  const isFirstStyleLoadRef  = useRef(true) // skip styleVersion bump on initial load
   // Ref stable pour le callback — évite re-créer les labels à chaque render
-  const onSegClickRef   = useRef(onSelectSegment)
+  const onSegClickRef        = useRef(onSelectSegment)
   useEffect(() => { onSegClickRef.current = onSelectSegment }, [onSelectSegment])
 
   const [currentStyleId, setCurrentStyleId] = useState('bright')
+  // Incremented after each style swap — triggers marker & label effects to rebuild
+  const [styleVersion, setStyleVersion]     = useState(0)
 
   // ─────────────────────────────────────────────────────────────
   // Layer helpers — called on first load AND after every style swap
@@ -117,6 +120,12 @@ export default function MapView({
 
     map.on('style.load', () => {
       setupLayers(map)
+      // On the initial load the React effects already handle markers/labels.
+      // On every subsequent style swap we bump styleVersion so they rebuild.
+      if (!isFirstStyleLoadRef.current) {
+        setStyleVersion(v => v + 1)
+      }
+      isFirstStyleLoadRef.current = false
     })
 
     map.on('load', () => {
@@ -148,9 +157,20 @@ export default function MapView({
   const changeStyle = useCallback((style) => {
     const map = mapRef.current
     if (!map || style.id === currentStyleId) return
-    setCurrentStyleId(style.id)
 
+    // Snapshot camera BEFORE the style wipes it
+    const camera = {
+      center:  map.getCenter(),
+      zoom:    map.getZoom(),
+      bearing: map.getBearing(),
+      pitch:   map.getPitch(),
+    }
+
+    setCurrentStyleId(style.id)
     map.setStyle(style.url)
+
+    // Restore exact position once the new style has loaded
+    map.once('style.load', () => map.jumpTo(camera))
   }, [currentStyleId])
 
   // ─────────────────────────────────────────────────────────────
@@ -255,7 +275,7 @@ export default function MapView({
       }
       markersRef.current[step.id] = marker
     })
-  }, [steps, regions, selectedStepId, selectedSegmentIndex, isEditor, highlightRegionId])
+  }, [steps, regions, selectedStepId, selectedSegmentIndex, isEditor, highlightRegionId, styleVersion])
 
   // Fly to selected step — skipped when a segment is selected (fitSegment handles it)
   useEffect(() => {
@@ -340,7 +360,7 @@ export default function MapView({
 
     if (map.isStyleLoaded()) addLabels()
     else map.once('load', addLabels)
-  }, [steps])
+  }, [steps, styleVersion])
 
   // Expose fitAll / fitSegment
   const fitAll = useCallback((filterRegion = null) => {
