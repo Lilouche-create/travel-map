@@ -182,7 +182,7 @@ export default function ObserverView() {
             to={selectedTo}
             regions={regions}
             isEditor={false}       // pas de bouton "Modifier"
-            onClose={() => { setPanelOpen(false); setSelectedFrom(null); setSelectedTo(null) }}
+            onClose={() => { setPanelOpen(false); setSelectedFrom(null); setSelectedTo(null); setSelectedSegIdx(null) }}
           />
         )}
       </div>
