@@ -118,10 +118,9 @@ export default function MapView({
     map.addControl(new maptilersdk.NavigationControl(), 'bottom-right')
     map.addControl(new maptilersdk.AttributionControl({ compact: true }), 'bottom-right')
 
+    // style.load fires on every style swap; only bump version AFTER initial load
+    // (transformStyle keeps our layers alive — no need to call setupLayers here)
     map.on('style.load', () => {
-      setupLayers(map)
-      // On the initial load the React effects already handle markers/labels.
-      // On every subsequent style swap we bump styleVersion so they rebuild.
       if (!isFirstStyleLoadRef.current) {
         setStyleVersion(v => v + 1)
       }
@@ -129,6 +128,9 @@ export default function MapView({
     })
 
     map.on('load', () => {
+      // Initial source + layer setup (runs once on first map load)
+      setupLayers(map)
+
       // Click générique — segment detection
       map.on('click', (e) => {
         const feats = map.queryRenderedFeatures(e.point, {
@@ -167,9 +169,30 @@ export default function MapView({
     }
 
     setCurrentStyleId(style.id)
-    map.setStyle(style.url)
 
-    // Restore exact position once the new style has loaded
+    // IDs of our custom GL layers — must survive the style swap
+    const CUSTOM_LAYER_IDS = new Set(['routes-glow', 'routes-base', 'routes-dashed', 'routes-arc'])
+
+    // transformStyle merges our custom source + layers INTO the incoming style
+    // before style.load fires, so they are never absent even for a single frame.
+    map.setStyle(style.url, {
+      transformStyle: (prevStyle, nextStyle) => ({
+        ...nextStyle,
+        sources: {
+          ...nextStyle.sources,
+          // Carry the routes source forward with the latest data snapshot
+          routes: { type: 'geojson', data: lastDataRef.current },
+        },
+        layers: [
+          // Base layers of the new style (streets, satellite tiles, etc.)
+          ...nextStyle.layers.filter(l => !CUSTOM_LAYER_IDS.has(l.id)),
+          // Our custom route layers from the previous style, appended on top
+          ...(prevStyle.layers?.filter(l => CUSTOM_LAYER_IDS.has(l.id)) ?? []),
+        ],
+      }),
+    })
+
+    // Restore exact camera position after the new style finishes loading
     map.once('style.load', () => map.jumpTo(camera))
   }, [currentStyleId])
 
