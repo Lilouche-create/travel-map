@@ -1,0 +1,95 @@
+/* MapTiler SDK styles — must come before Tailwind */
+@import '@maptiler/sdk/dist/maptiler-sdk.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: #F5F5F7;
+    color: #1d1d1f;
+  }
+
+  html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+@layer utilities {
+  .bg-navy {
+    background-color: #1a2744;
+  }
+  .text-navy {
+    color: #1a2744;
+  }
+  .border-navy {
+    border-color: #1a2744;
+  }
+  .bg-navy-600 {
+    background-color: #15203a;
+  }
+  .focus\:ring-navy:focus {
+    --tw-ring-color: rgba(26, 39, 68, 0.3);
+  }
+  .hover\:bg-navy-600:hover {
+    background-color: #15203a;
+  }
+}
+
+/* Map container */
+.maplibregl-map,
+.maplibregl-canvas {
+  outline: none;
+}
+
+/* Permanent step labels on map */
+.map-label {
+  position: absolute;
+  top: 34px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: Inter, sans-serif;
+  color: #1d1d1f;
+  text-shadow:
+    -1px -1px 0 #fff,
+     1px -1px 0 #fff,
+    -1px  1px 0 #fff,
+     1px  1px 0 #fff,
+     0    2px 4px rgba(255,255,255,0.9);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Transitions */
+* {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
