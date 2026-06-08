@@ -44,7 +44,7 @@ function buildEvents(sorted) {
     if (s.date_fin && next?.date_debut) {
       try {
         const stayStart = addDays(parseISO(s.date_fin), 1)
-        const stayEnd   = subDays(parseISO(next.date_debut), 1)
+        const stayEnd   = parseISO(next.date_debut)
         if (stayEnd >= stayStart) {
           events.push({ step: s, start: stayStart, end: stayEnd, type: 'stay' })
         }
