@@ -269,7 +269,12 @@ export default function MapView({
     const segToId   = selectedSegmentIndex !== null ? sortedForMarkers[selectedSegmentIndex + 1]?.id : null
     const hasSegSel = selectedSegmentIndex !== null
 
-    steps.forEach((step, index) => {
+    // Circular trip detection — first and last step share the same city
+    const firstStep  = sortedForMarkers[0]
+    const lastStep   = sortedForMarkers[sortedForMarkers.length - 1]
+    const isCircular = isCircularTrip(firstStep, lastStep)
+
+    sortedForMarkers.forEach((step, sortedIndex) => {
       if (!step.lat || !step.lng) return
       const status   = stepStatus(step.date_debut, step.date_fin)
       const faded    = highlightRegionId && step.region_id !== highlightRegionId
@@ -281,12 +286,19 @@ export default function MapView({
       // Marqueurs hors segment actif → discrets
       const dimmedMarker = hasSegSel && !isEndpoint
 
-      const el = createMarkerEl(index + 1, color, pulse, selected, step.nom, dimmedMarker)
+      // Circular trip: sublabels to tell first from last
+      const isFirstM  = isCircular && step.id === firstStep?.id
+      const isLastM   = isCircular && step.id === lastStep?.id
+      const sublabel  = isFirstM ? 'Départ' : isLastM ? 'Arrivée' : null
+
+      const el = createMarkerEl(sortedIndex + 1, color, pulse, selected, step.nom, dimmedMarker, sublabel)
       el.addEventListener('click', (e) => { e.stopPropagation(); onSelectStep?.(step) })
 
       markersRef.current[step.id]?.remove()
 
-      const marker = new maptilersdk.Marker({ element: el, draggable: isEditor })
+      // Offset last marker so it doesn't overlap first in circular trips
+      const offset = isLastM ? [15, -15] : [0, 0]
+      const marker = new maptilersdk.Marker({ element: el, draggable: isEditor, offset })
         .setLngLat([step.lng, step.lat])
         .addTo(map)
 
@@ -500,7 +512,16 @@ function regionColor(regionId, regions) {
   return regions.find(r => r.id === regionId)?.couleur || '#1a2744'
 }
 
-function createMarkerEl(number, color, pulse, selected, label, dimmed = false) {
+// Détecte si le voyage est en boucle (premier ≈ dernier step)
+function isCircularTrip(first, last) {
+  if (!first || !last || first.id === last.id) return false
+  if (!first.lat || !last.lat || !first.lng || !last.lng) return false
+  if (first.nom && last.nom && first.nom.trim() === last.nom.trim()) return true
+  return Math.abs(first.lat - last.lat) < 0.01 &&
+         Math.abs(first.lng - last.lng) < 0.01
+}
+
+function createMarkerEl(number, color, pulse, selected, label, dimmed = false, sublabel = null) {
   const wrapper = document.createElement('div')
   wrapper.style.cssText = `display:flex;flex-direction:column;align-items:center;cursor:pointer;
     transition:opacity .25s;opacity:${dimmed ? '0.3' : '1'};`
@@ -529,6 +550,21 @@ function createMarkerEl(number, color, pulse, selected, label, dimmed = false) {
 
   wrapper.appendChild(circle)
   wrapper.appendChild(lbl)
+
+  if (sublabel) {
+    const sub = document.createElement('div')
+    sub.style.cssText = `
+      margin-top:2px;white-space:nowrap;
+      font-size:9px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;
+      font-family:Inter,sans-serif;
+      background:${color};color:white;
+      border-radius:5px;padding:1px 5px;
+      pointer-events:none;user-select:none;
+      box-shadow:0 1px 4px rgba(0,0,0,0.18);
+    `
+    sub.textContent = sublabel
+    wrapper.appendChild(sub)
+  }
 
   if (!document.getElementById('map-pulse-style')) {
     const st = document.createElement('style')
