@@ -338,9 +338,8 @@ export default function MapView({
           }
         }
 
-        const text     = fmtDuration(from.duree_vers_suivante)
-        const fromId   = from.id
-        const isDimmed = selectedSegmentIndex !== null && selectedSegmentIndex !== i
+        const text   = fmtDuration(from.duree_vers_suivante)
+        const fromId = from.id
 
         const el = document.createElement('div')
         el.style.cssText = [
@@ -355,10 +354,9 @@ export default function MapView({
           'cursor:pointer',
           'white-space:nowrap',
           'box-shadow:0 2px 8px rgba(0,0,0,0.10)',
+          'pointer-events:all',
           'user-select:none',
           'transition:background 0.15s,border-color 0.15s,opacity 0.2s',
-          `opacity:${isDimmed ? '0.2' : '1'}`,
-          `pointer-events:${isDimmed ? 'none' : 'all'}`,
         ].join(';')
         el.textContent = text
         el.addEventListener('mouseenter', () => {
@@ -385,7 +383,21 @@ export default function MapView({
 
     if (map.isStyleLoaded()) addLabels()
     else map.once('load', addLabels)
-  }, [steps, styleVersion, selectedSegmentIndex])
+  }, [steps, styleVersion])
+
+  // ── Opacité des labels selon la sélection ──────────────────
+  // Mise à jour in-place — pas de rebuild des Markers
+  useEffect(() => {
+    const sorted = [...steps].sort((a, b) => a.ordre - b.ordre)
+    sorted.slice(0, -1).forEach((from, i) => {
+      const marker = labelsRef.current[from.id]
+      if (!marker) return
+      const el      = marker.getElement()
+      const dimmed  = selectedSegmentIndex !== null && selectedSegmentIndex !== i
+      el.style.opacity       = dimmed ? '0.2' : '1'
+      el.style.pointerEvents = dimmed ? 'none' : 'all'
+    })
+  }, [selectedSegmentIndex, steps])
 
   // Expose fitAll / fitSegment
   const fitAll = useCallback((filterRegion = null) => {
