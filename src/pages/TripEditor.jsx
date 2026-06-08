@@ -125,8 +125,9 @@ export default function TripEditor() {
 
   const handleGlobalView = useCallback(() => {
     setHighlightRegion(null)
+    closePanel()
     if (mapApi.current?.fitAll) mapApi.current.fitAll()
-  }, [])
+  }, [closePanel])
 
   const copyLink = async () => {
     await navigator.clipboard.writeText(observerUrl)

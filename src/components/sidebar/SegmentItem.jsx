@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { fmtDateShort, fmtDuration, transportIcon } from '../../lib/utils'
+import { fmtDateShort, fmtDate, fmtDuration, transportIcon } from '../../lib/utils'
 import { Pencil, Trash2 } from 'lucide-react'
 
 export default function SegmentItem({ from, to, index, isSelected, onClick, isEditor, onEdit, onDelete, regionColor, regionBg }) {
@@ -60,15 +60,13 @@ export default function SegmentItem({ from, to, index, isSelected, onClick, isEd
             </p>
           )}
 
-          {/* Dates */}
-          {(from.date_debut || from.date_fin) && (
+          {/* Dates — to.date_debut = départ du trajet, to.date_fin = arrivée */}
+          {(to?.date_debut || to?.date_fin) && (
             <p className="text-xs text-gray-400">
-              {fmtDateShort(from.date_debut)}
-              {to?.date_debut && to.date_debut !== from.date_debut
-                ? ` → ${fmtDateShort(to.date_debut)}`
-                : from.date_fin
-                  ? ` → ${fmtDateShort(from.date_fin)}`
-                  : ''}
+              📅 {fmtDateShort(to.date_debut)}
+              {to.date_fin && to.date_fin !== to.date_debut
+                ? ` → ${fmtDate(to.date_fin)}`
+                : ''}
             </p>
           )}
         </div>

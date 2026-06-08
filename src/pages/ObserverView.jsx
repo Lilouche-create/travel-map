@@ -66,6 +66,10 @@ export default function ObserverView() {
   }
   const handleGlobalView = () => {
     setHighlightRegion(null)
+    setPanelOpen(false)
+    setSelectedFrom(null)
+    setSelectedTo(null)
+    setSelectedSegIdx(null)
     if (mapApi.current?.fitAll) mapApi.current.fitAll()
   }
   const handleRegionClick = (regionId) => {
